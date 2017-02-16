@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>Cours 3</section>
+				<section>
+					Préambule
+				</section>
+				<section>
+					<h3>Récapitulatif :</h3>
+					<ul>
+						<li>Gestion tables</li>
+						<li>Primary key (PK) et Foreign key(FK)</li>
+						<li>Type</li>
+						<li>Contrainte (unique)</li>
+						<li>Relation 1 ----> n</li>
+					</ul>
+				</section>
+				<section>
+					<h3>Relation 1 --- 1</h3>
+					<div>
+						Notre client a un profil dans lequel il va enregistrer la langue choisi, et son avatar
+					</div>
+				</section>
+				<section>
+					<h3>Modelisation</h3>
+					<div>
+						Nous avons notre table client déjà contruite, et nous désions <strong>étendre</strong> le <strong>modèle</strong>
+						<br>
+						Deux choix :
+
+					</div>
+					<ul>
+						<li>Modifier la table client</li>
+						<li>Ajouter une table supplémentaire</li>
+					</ul>
+				</section>
+				<section>
+					<h4>Comment choisir</h4>
+					<div>Tout dépend de la modélisation. Si les champs sont rattachés directement au modèle de base
+						il est judicieux de modifier la table. S'il s'agit d'un nouveau modèle => une nouvelle table </div>
+
+				</section>
+				<section>
+					<h4>Comment on modèlise la relation ?</h4>
+					<div>On créer une nouvelle table avec une FK vers la table voulue avec une contrainte d'unicité</div>
+					<div>client (1) ---- (1) profil (new) </div>
+					<pre>
+						<code class="sql" data-trim >
+							CREATE TABLE profil(
+							id INT,
+							client_id INT,
+							langue TEXT,
+							avatar TEXT,
+							PRIMARY KEY(id),
+							FOREIGN KEY(client_id) REFERENCES client(id),
+							UNIQUE(client_id));
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h4>Legacy database</h4>
+					<div>Il s'agit d'une table que l'on ne peut pas modifier (typiquement une table d'un autre logiciel).
+					Du coup dans tout les cas on doit ajouter une table</div>
+				</section>
+				<section>
+					<h4>Les relations (n) ----- (n)</h4>
+					<div>Notre client veut acheter des articles. Ces articles doivent etre associés à une commande. Nous avons donc une table article et une table commande</div>
+					<div>Notre commande a un client, un client peut avoir 0* commande, une commande peut avoir 1* article et un article peut avoir 0* commande</div>
+				</section>
+				<section>
+					<h4>La table Commande</h4>
+					<h5>Relation client (n) <--- (1) commande</h5>
+					<pre>
+					<code class="sql" data-trim >
+						CREATE TABLE commande(
+						id INT,
+						client_id INT,
+						data TEXT,
+						PRIMARY KEY(id),
+						FOREIGN KEY(client_id) REFERENCES client(id));
+					</code>
+						</pre>
+				</section>
+				<section>
+					<h4>La table Article</h4>
+					<pre>
+					<code class="sql" data-trim >
+						CREATE TABLE article(
+						id INT,
+						label TEXT,
+						quatity INT,
+						PRIMARY KEY(id));
+					</code>
+						</pre>
+				</section>
+				<section>
+					<h4>Relation commande / article</h4>
+					<h5>commande (n) --- (n) article</h5>
+					<div>Comment modéliser cette relation ?</div>
+				</section>
+				<section>
+					<h4>Table intermédiaire</h4>
+					<div>Pour une relation (n) --- (n) nous devons créer une table intermédiare</div>
+					<div>Par convention nous allons la nommer table1_table2</div>
+					<div>commande (n) <----- (1) commande_article (1) ----> (n) article</div>
+				</section>
+				<section>
+					<h4>Le code</h4>
+					<div>la modélisation commande (n) <----- (1) commande_article (1) ----> article nous indique l'enplacement des fk</div>
+					<pre>
+						<code class="sql" data-trim >
+							CREATE TABLE commande_article(
+							id INT,
+							commande_id INT,
+							article_id INT,
+							quantity INT, -- IMPORTANT
+							PRIMARY KEY(id),
+							FOREIGN KEY(commande_id) REFERENCES commande(id),
+							FOREIGN KEY(article_id) REFERENCES article(id),
+							UNIQUE (commande_id, article_id)
+							);
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h4>Les cas de tables intermédiaires</h4>
+					<div>Nous rajoutons comme contrainte qu'il ne peut y avoir qu'une association unique commande/article :
+						pour commander un nombre x d'un article on indique une quantité. Il y a donc une relation d'unicité entre acticle/commande</div>
+					<div>Pour modéliser ça on peut utiliser : </div>
+					<ul>
+						<li>Contrainte d'unicité</li>
+						<li>PK composite</li>
+					</ul>
+				</section>
+				<section>
+					<h4>Pk composite</h4>
+					<div>Une Primary key composite est une primary key composé de plusieurs champs ayant un lien unique entre eux et ayant un sens sémantique</div>
+					<div>A une primary key composite est assocé une FK composite</div>
+				</section>
+				<section>
+					<h4>Code</h4>
+					<pre>
+						<code class="sql" data-trim >
+							CREATE TABLE commande_article(
+							commande_id INT,
+							article_id INT,
+							quatity INT, -- IMPORTANT
+							PRIMARY KEY(commande_id, article_id),
+							FOREIGN KEY(commande_id) REFERENCES commande(id),
+							FOREIGN KEY(article_id) REFERENCES article(id)
+							);
+						</code>
+						<code class="sql" data-trim >
+							CREATE TABLE ma_classe(
+							id INT,
+							commande_id INT,
+							article_id INT,
+							PRIMARY KEY(id),
+							FOREIGN KEY(commande_id, article_id)
+							REFERENCES commande_article(commande_id, article_id)
+							);
+						</code>
+					</pre>
+				</section>
+				<section>
+					<div>Les pk composites ont des avantages et des inconvénient </div>
+					<ul>
+						<li>pro <ul>
+							<li>Sémantiquement justifié</li>
+							<li>Permet la mise à jour de table de référence (cf TD demain)</li>
+							<li>N'est pas arbitraire (n'est pas lié à l'ordre d'insersion</li>
+						</ul></li>
+						<li>cons <ul>
+							<li>+ difficile à manipuler</li>
+							<li>Rend l'utilisation d'application REST très difficile</li>
+							<li>De nombreux d'ORM ne supporte pas cette fonctionalité (lié au REST)</li>
+						</ul></li>
+					</ul>
+				</section>
+				<section>
+					A demain
+				</section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
